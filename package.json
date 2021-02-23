@@ -1,6 +1,9 @@
 {
   "dependencies": {
     "fs-extra": "^9.1.0",
+    "mic": "^2.1.2",
+    "minisearch": "^3.0.2",
+    "wav": "^1.0.2",
     "ws": "^7.4.3"
   }
 }

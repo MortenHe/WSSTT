@@ -10,7 +10,7 @@ const ws = new WebSocket('ws://localhost:' + configFile.port);
 
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
-    console.log("connected to wss from tts index");
+    console.log("connected to wss from stt index");
 
     //Wenn WS eine Nachricht von WSS empfaengt
     ws.on('message', function incoming(message) {
@@ -41,7 +41,7 @@ ws.on('open', function open() {
             }
 
             //Gesammelte JSON-Werte als Datei ablegen fuer Indexsuche
-            console.log("CREATE TTS INDEX FILE")
+            console.log("create stt index file");
             fs.writeJSON(__dirname + "/sstIndex.json", indexJSON);
         }
     });
