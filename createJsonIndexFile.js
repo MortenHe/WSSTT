@@ -1,12 +1,10 @@
 //Libs
 const fs = require('fs-extra');
 
-//Config
-const configFile = fs.readJsonSync(__dirname + '/../AudioServer/config.json');
-
 //Mit WebsocketServer verbinden
+const port = parseInt(process.argv[2]);
 const WebSocket = require('ws');
-const ws = new WebSocket('ws://localhost:' + configFile.port);
+const ws = new WebSocket('ws://localhost:' + port);
 
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {

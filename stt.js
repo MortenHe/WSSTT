@@ -1,41 +1,35 @@
-//Port 8080 (audio player) oder 9090 (sh audio player)
-//TODO: port
-const port = process.argv[2] || 8081;
-
 //Mit WebsocketServer verbinden
+const port = parseInt(process.argv[2]);
 const WebSocket = require('ws');
 const ws = new WebSocket('ws://localhost:' + port);
 
+//Libs
 const { exec } = require('child_process');
-
 const fs = require('fs-extra');
 const FileWriter = require('wav').FileWriter;
-const mic = require('mic'); // requires arecord or sox, see https://www.npmjs.com/package/mic
+const mic = require('mic');
 const MiniSearch = require('minisearch');
 const http = require('http');
 
-
+//Mikroaufnahme
 const micInstance = mic({
     rate: '16000',
     channels: '1',
     debug: false
 });
-
 const micInputStream = micInstance.getAudioStream();
-
 const outputFileStream = new FileWriter(__dirname + '/stt.wav', {
     sampleRate: 16000,
     channels: 1
 });
+micInputStream.pipe(outputFileStream);
 
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
-const audioDir = fs.readJSONSync("../AudioServer/config.json").audioDir;
-
-micInputStream.pipe(outputFileStream);
+const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").nextcloudDir + "/audio/wap/mp3";
 
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
-    console.log("connected to wss");
+    console.log("connected to wss from stt search");
 
     //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
     ws.send(JSON.stringify({
@@ -47,13 +41,14 @@ ws.on('open', function open() {
 
     setTimeout(function () {
         micInstance.stop();
+        //TODO: Pfad
         const command = "cd /home/martin/github/vosk-api/python/example/ && python3 test_simple.py " + __dirname + "/stt.wav";
         exec(command, (err, searchTerm, stderr) => {
             console.log("Speech To Text aussen: " + searchTerm);
 
             fs.readJSON(__dirname + '/sstIndex.json').then(jsonData => {
                 const miniSearch = new MiniSearch({
-                    fields: ['name', 'tracks'], // fields to index for full-text search
+                    fields: ['name', 'tracks'],
                     storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
                 });
 
@@ -62,15 +57,12 @@ ws.on('open', function open() {
                 // Index all documents
                 miniSearch.addAll(jsonData);
 
-                //searchTerm = "bobs toller entwurf"
-                //searchTerm = "abba best of"
                 searchTerm = "benjamin verliebt sich"
-                // Search with default options
+                //Prefix Suche
                 const results = miniSearch.search(searchTerm, {
                     prefix: true
                 })
 
-                //console.log(results[0]);
                 if (results.length) {
                     item = results[0];
                     if (item.mode === "bebl") {
@@ -82,12 +74,12 @@ ws.on('open', function open() {
                             allowRandom: item.allowRandom,
                             position: 0
                         }).then(() => {
-                            const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
 
+                            //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
+                            const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
                             exec(ttsCommand, (err, data, stderr) => {
-                                console.log("done")
                                 http.get("http://localhost/php/activateAudioApp.php?mode=audio");
-                            })
+                            });
                         });
                     }
                     else {
