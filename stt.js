@@ -10,6 +10,7 @@ const FileWriter = require('wav').FileWriter;
 const mic = require('mic');
 const MiniSearch = require('minisearch');
 const http = require('http');
+const Gpio = require('onoff').Gpio;
 
 //Mikroaufnahme
 const micInstance = mic({
@@ -27,69 +28,77 @@ micInputStream.pipe(outputFileStream);
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
 const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audioDir + "/wap/mp3";
 
+const button = new Gpio(15, 'in', 'falling', { debounceTimeout: 100 });
+
+
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
     console.log("connected to wss from stt search");
 
-    //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
-    ws.send(JSON.stringify({
-        type: "pause-if-playing",
-        value: false
-    }));
+    //Wenn Button gedrueckt wird -> Aufnahme starten
+    button.watch(function (err, value) {
+        console.log("record button pressed");
 
-    micInstance.start();
+        //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
+        ws.send(JSON.stringify({
+            type: "pause-if-playing",
+            value: false
+        }));
 
-    setTimeout(function () {
-        micInstance.stop();
-        const command = "cd /../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
-        exec(command, (err, searchTerm, stderr) => {
-            console.log("Speech To Text aussen: " + searchTerm);
+        micInstance.start();
 
-            fs.readJSON(__dirname + '/sstIndex.json').then(jsonData => {
-                const miniSearch = new MiniSearch({
-                    fields: ['name', 'tracks'],
-                    storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
-                });
+        setTimeout(function () {
+            micInstance.stop();
+            const command = "cd /../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
+            exec(command, (err, searchTerm, stderr) => {
+                console.log("Speech To Text aussen: " + searchTerm);
 
-                console.log("Speech To Text innen: " + searchTerm);
+                fs.readJSON(__dirname + '/sstIndex.json').then(jsonData => {
+                    const miniSearch = new MiniSearch({
+                        fields: ['name', 'tracks'],
+                        storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
+                    });
 
-                // Index all documents
-                miniSearch.addAll(jsonData);
+                    console.log("Speech To Text innen: " + searchTerm);
 
-                searchTerm = "benjamin verliebt"
-                //Prefix Suche
-                const results = miniSearch.search(searchTerm, {
-                    prefix: true
-                })
+                    // Index all documents
+                    miniSearch.addAll(jsonData);
 
-                if (results.length) {
-                    item = results[0];
-                    if (item.mode === "bebl") {
-                        console.log("hat bebl")
-                        fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
-                            path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
-                            activeItem: item.mode + "/" + item.id,
-                            activeItemName: item.name,
-                            allowRandom: item.allowRandom,
-                            position: 0
-                        }).then(() => {
+                    searchTerm = "benjamin verliebt"
+                    //Prefix Suche
+                    const results = miniSearch.search(searchTerm, {
+                        prefix: true
+                    })
 
-                            //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
-                            const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
-                            exec(ttsCommand, (err, data, stderr) => {
-                                http.get("http://localhost/php/activateAudioApp.php?mode=audio");
+                    if (results.length) {
+                        item = results[0];
+                        if (item.mode === "bebl") {
+                            console.log("hat bebl")
+                            fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
+                                path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
+                                activeItem: item.mode + "/" + item.id,
+                                activeItemName: item.name,
+                                allowRandom: item.allowRandom,
+                                position: 0
+                            }).then(() => {
+
+                                //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
+                                const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
+                                exec(ttsCommand, (err, data, stderr) => {
+                                    http.get("http://localhost/php/activateAudioApp.php?mode=audio");
+                                });
                             });
-                        });
+                        }
+                        else {
+                            console.log("kein bebl");
+                        }
                     }
                     else {
-                        console.log("kein bebl");
+                        //TODO: Audio wieder starten
+                        console.log("no results for sst");
                     }
-                }
-                else {
-                    //TODO: Audio wieder starten
-                    console.log("no results for sst");
-                }
+                });
             });
-        });
-    }, 2000);
+        }, 2000);
+    });
 });
