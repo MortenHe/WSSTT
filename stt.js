@@ -28,8 +28,9 @@ micInputStream.pipe(outputFileStream);
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
 const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audioDir + "/wap/mp3";
 
-const button = new Gpio(15, 'in', 'falling', { debounceTimeout: 100 });
-
+//Button und LED
+const button = new Gpio(6, 'in', 'both', { debounceTimeout: 200 });
+const led = new Gpio(21, 'out');
 
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
@@ -37,43 +38,59 @@ ws.on('open', function open() {
 
     //Wenn Button gedrueckt wird -> Aufnahme starten
     button.watch(function (err, value) {
-        console.log("record button pressed");
 
-        //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
-        ws.send(JSON.stringify({
-            type: "pause-if-playing",
-            value: false
-        }));
+        //Button pressed
+        if (!value) {
+            console.log("pressed -> LED on");
+            led.write(1);
 
-        micInstance.start();
+            //Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
+            ws.send(JSON.stringify({
+                type: "pause-if-playing",
+                value: false
+            }));
 
-        setTimeout(function () {
+            //Aufnahme starten
+            micInstance.start();
+        }
+
+        //Button released
+        else {
+            console.log("button released -> LED off");
+            led.write(0);
+
+            //Aufnahme stoppen
             micInstance.stop();
+
+            //STT-Analyse der aufgenommenen wav-Datei
             const command = "cd /../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
             exec(command, (err, searchTerm, stderr) => {
                 console.log("Speech To Text aussen: " + searchTerm);
 
+                //Suchindex aus vorher erstellter JSON-Datei anlegen fuer Suche nach Playlist
                 fs.readJSON(__dirname + '/sstIndex.json').then(jsonData => {
                     const miniSearch = new MiniSearch({
                         fields: ['name', 'tracks'],
                         storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
                     });
-
                     console.log("Speech To Text innen: " + searchTerm);
 
-                    // Index all documents
-                    miniSearch.addAll(jsonData);
-
                     searchTerm = "benjamin verliebt"
-                    //Prefix Suche
+                    //searchTerm = "öfff"
+
+                    //Index anlegen und Prefix-Suche starten
+                    miniSearch.addAll(jsonData);
                     const results = miniSearch.search(searchTerm, {
                         prefix: true
                     })
 
+                    //Wenn es Treffer gibt
                     if (results.length) {
                         item = results[0];
                         if (item.mode === "bebl") {
                             console.log("hat bebl")
+
+                            //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird
                             fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
                                 path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
                                 activeItem: item.mode + "/" + item.id,
@@ -94,11 +111,16 @@ ws.on('open', function open() {
                         }
                     }
                     else {
-                        //TODO: Audio wieder starten
-                        console.log("no results for sst");
+                        console.log("no results for sst -> unpause player");
+
+                        //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
+                        ws.send(JSON.stringify({
+                            type: "toggle-paused",
+                            value: false
+                        }));
                     }
                 });
             });
-        }, 2000);
+        }
     });
 });
