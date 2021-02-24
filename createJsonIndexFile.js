@@ -1,3 +1,4 @@
+//JSON-Dokument fuer Index-Suche aus allen einzelnen JSON-Files (hsp, kindermusik,...) erzeugen
 //Libs
 const fs = require('fs-extra');
 

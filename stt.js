@@ -25,7 +25,7 @@ const outputFileStream = new FileWriter(__dirname + '/stt.wav', {
 micInputStream.pipe(outputFileStream);
 
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
-const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").nextcloudDir + "/audio/wap/mp3";
+const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audioDir + "/wap/mp3";
 
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
@@ -41,8 +41,7 @@ ws.on('open', function open() {
 
     setTimeout(function () {
         micInstance.stop();
-        //TODO: Pfad
-        const command = "cd /home/martin/github/vosk-api/python/example/ && python3 test_simple.py " + __dirname + "/stt.wav";
+        const command = "cd /../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
         exec(command, (err, searchTerm, stderr) => {
             console.log("Speech To Text aussen: " + searchTerm);
 
@@ -57,7 +56,7 @@ ws.on('open', function open() {
                 // Index all documents
                 miniSearch.addAll(jsonData);
 
-                searchTerm = "benjamin verliebt sich"
+                searchTerm = "benjamin verliebt"
                 //Prefix Suche
                 const results = miniSearch.search(searchTerm, {
                     prefix: true
