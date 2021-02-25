@@ -75,7 +75,9 @@ ws.on('open', function open() {
                         fields: ['name', 'tracks'],
                         storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
                     });
+
                     //searchTerm = "benjamin verliebt"
+                    searchTerm = "bob der spielplatz"
 
                     //Index anlegen und Prefix-Suche starten
                     miniSearch.addAll(jsonData);
@@ -88,7 +90,7 @@ ws.on('open', function open() {
                         item = results[0];
                         console.log(item);
                         //if (item.mode === "bebl") {
-                        console.log("hat bebl")
+                        //console.log("hat bebl")
 
                         //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird
                         fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
@@ -100,7 +102,13 @@ ws.on('open', function open() {
                         }).then(() => {
 
                             //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
-                            const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
+                            const ttsCommand = `
+                            pico2wave -l de-DE -w ${__dirname}/tts.wav '${item.name}' &&
+                            ffmpeg -i ${__dirname}/tts.wav -af acompressor=threshold=-11dB:ratio=9:attack=200:release=1000:makeup=2 ${__dirname}/tts-comp.wav &&
+                            aplay ${__dirname}/tts-comp.wav &&
+                            rm ${__dirname}/tts.wav &&
+                            rm ${__dirname}/tts-comp.wav`;
+                            //console.log(ttsCommand);
                             exec(ttsCommand, (err, data, stderr) => {
                                 http.get("http://localhost/php/activateAudioApp.php?mode=audio");
                             });

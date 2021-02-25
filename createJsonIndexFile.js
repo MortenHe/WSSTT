@@ -41,7 +41,7 @@ ws.on('open', function open() {
 
             //Gesammelte JSON-Werte als Datei ablegen fuer Indexsuche
             console.log("create stt index file");
-            fs.writeJSON(__dirname + "/sstIndex.json", indexJSON);
+            fs.writeJSON(__dirname + "/sttIndex.json", indexJSON);
         }
     });
 });

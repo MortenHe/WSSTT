@@ -103,6 +103,7 @@ dist
 # TernJS port file
 .tern-port
 config.json
-sstIndex.json
+sttIndex.json
 stt.wav
 tts.wav
+tts-comp.wav
