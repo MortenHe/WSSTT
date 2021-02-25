@@ -14,13 +14,14 @@ const Gpio = require('onoff').Gpio;
 
 //Mikroaufnahme
 const micInstance = mic({
-    rate: '16000',
+    rate: '48000',
     channels: '1',
-    debug: false
+    device: "hw:2,0",
+    debug: true
 });
 const micInputStream = micInstance.getAudioStream();
 const outputFileStream = new FileWriter(__dirname + '/stt.wav', {
-    sampleRate: 16000,
+    sampleRate: 48000,
     channels: 1
 });
 micInputStream.pipe(outputFileStream);
@@ -63,9 +64,10 @@ ws.on('open', function open() {
             micInstance.stop();
 
             //STT-Analyse der aufgenommenen wav-Datei
-            const command = "cd /../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
+            const command = "cd " + __dirname + "/../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
+            console.log(command);
             exec(command, (err, searchTerm, stderr) => {
-                console.log("Speech To Text aussen: " + searchTerm);
+                console.log("Speech To Text: " + searchTerm);
 
                 //Suchindex aus vorher erstellter JSON-Datei anlegen fuer Suche nach Playlist
                 fs.readJSON(__dirname + '/sstIndex.json').then(jsonData => {
@@ -73,10 +75,7 @@ ws.on('open', function open() {
                         fields: ['name', 'tracks'],
                         storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
                     });
-                    console.log("Speech To Text innen: " + searchTerm);
-
-                    searchTerm = "benjamin verliebt"
-                    //searchTerm = "öfff"
+                    //searchTerm = "benjamin verliebt"
 
                     //Index anlegen und Prefix-Suche starten
                     miniSearch.addAll(jsonData);
@@ -87,28 +86,29 @@ ws.on('open', function open() {
                     //Wenn es Treffer gibt
                     if (results.length) {
                         item = results[0];
-                        if (item.mode === "bebl") {
-                            console.log("hat bebl")
+                        console.log(item);
+                        //if (item.mode === "bebl") {
+                        console.log("hat bebl")
 
-                            //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird
-                            fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
-                                path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
-                                activeItem: item.mode + "/" + item.id,
-                                activeItemName: item.name,
-                                allowRandom: item.allowRandom,
-                                position: 0
-                            }).then(() => {
+                        //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird
+                        fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
+                            path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
+                            activeItem: item.mode + "/" + item.id,
+                            activeItemName: item.name,
+                            allowRandom: item.allowRandom,
+                            position: 0
+                        }).then(() => {
 
-                                //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
-                                const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
-                                exec(ttsCommand, (err, data, stderr) => {
-                                    http.get("http://localhost/php/activateAudioApp.php?mode=audio");
-                                });
+                            //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
+                            const ttsCommand = "pico2wave -l de-DE -w " + __dirname + "/tts.wav '" + item.name + "' && aplay " + __dirname + "/tts.wav && rm " + __dirname + "/tts.wav";
+                            exec(ttsCommand, (err, data, stderr) => {
+                                http.get("http://localhost/php/activateAudioApp.php?mode=audio");
                             });
-                        }
-                        else {
-                            console.log("kein bebl");
-                        }
+                        });
+                        //}
+                        //else {
+                        //    console.log("kein bebl");
+                        //}
                     }
                     else {
                         console.log("no results for sst -> unpause player");
