@@ -64,7 +64,7 @@ ws.on('open', function open() {
             micInstance.stop();
 
             //STT-Analyse der aufgenommenen wav-Datei
-            const command = "cd " + __dirname + "/../vosk-api/python/example && python3 test_simple.py " + __dirname + "/stt.wav";
+            const command = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
             console.log(command);
             exec(command, (err, searchTerm, stderr) => {
                 console.log("Speech To Text: " + searchTerm);
