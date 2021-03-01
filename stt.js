@@ -70,7 +70,7 @@ ws.on('open', function open() {
                 console.log("Speech To Text: " + searchTerm);
 
                 //Suchindex aus vorher erstellter JSON-Datei anlegen fuer Suche nach Playlist
-                fs.readJSON(__dirname + '/sstIndex.json').then(jsonData => {
+                fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
                     const miniSearch = new MiniSearch({
                         fields: ['name', 'tracks'],
                         storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
@@ -89,8 +89,6 @@ ws.on('open', function open() {
                     if (results.length) {
                         item = results[0];
                         console.log(item);
-                        //if (item.mode === "bebl") {
-                        //console.log("hat bebl")
 
                         //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird
                         fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
@@ -113,13 +111,9 @@ ws.on('open', function open() {
                                 http.get("http://localhost/php/activateAudioApp.php?mode=audio");
                             });
                         });
-                        //}
-                        //else {
-                        //    console.log("kein bebl");
-                        //}
                     }
                     else {
-                        console.log("no results for sst -> unpause player");
+                        console.log("no results for stt -> unpause player");
 
                         //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
                         ws.send(JSON.stringify({
