@@ -77,7 +77,7 @@ ws.on('open', function open() {
                     });
 
                     //searchTerm = "benjamin verliebt"
-                    searchTerm = "bob der spielplatz"
+                    //searchTerm = "bob der spielplatz"
 
                     //Index anlegen und Prefix-Suche starten
                     miniSearch.addAll(jsonData);
