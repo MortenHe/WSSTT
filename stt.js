@@ -12,12 +12,12 @@ const MiniSearch = require('minisearch');
 const http = require('http');
 const Gpio = require('onoff').Gpio;
 
-//Mikroaufnahme
+//Mikroaufnahme (channel 1 = mono)
 const micInstance = mic({
     rate: '48000',
     channels: '1',
     device: "hw:2,0",
-    debug: true
+    debug: false
 });
 const micInputStream = micInstance.getAudioStream();
 const outputFileStream = new FileWriter(__dirname + '/stt.wav', {
@@ -33,6 +33,12 @@ const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audi
 const button = new Gpio(6, 'in', 'both', { debounceTimeout: 200 });
 const led = new Gpio(21, 'out');
 
+//Lock-Flag, damit Button nicht mehrfach gleichzeitig gedrueckt werden kann
+var buttonLock = false;
+
+//Aufnahmezeit stoppen -> Mindestlaenge fuer Aufnahme
+var startTime;
+
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
     console.log("connected to wss from stt search");
@@ -42,7 +48,18 @@ ws.on('open', function open() {
 
         //Button pressed
         if (!value) {
-            console.log("pressed -> LED on");
+
+            //Wenn gerade schon eine STT Berechnung laueft -> abbrechen
+            if (buttonLock) {
+                console.log("lock active. please wait");
+                return;
+            }
+
+            console.log("button pressed -> Set lock and start timer");
+            buttonLock = true;
+            startTime = new Date().getTime();
+
+            console.log("LED on");
             led.write(1);
 
             //Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
@@ -57,15 +74,22 @@ ws.on('open', function open() {
 
         //Button released
         else {
-            console.log("button released -> LED off");
+            console.log("button released -> LED off & stop timer");
             led.write(0);
+            const recordingTime = new Date().getTime() - startTime;
 
             //Aufnahme stoppen
             micInstance.stop();
 
+            //Wenn die Aufnahme zu kurz war, Player wieder starten und Lock zuruecksetzen
+            if (recordingTime < 2000) {
+                console.log("recording was too short");
+                resumePlaying();
+                return;
+            }
+
             //STT-Analyse der aufgenommenen wav-Datei
             const command = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
-            console.log(command);
             exec(command, (err, searchTerm, stderr) => {
                 console.log("Speech To Text: " + searchTerm);
 
@@ -76,8 +100,8 @@ ws.on('open', function open() {
                         storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
                     });
 
+                    //TODO: remove
                     //searchTerm = "benjamin verliebt"
-                    //searchTerm = "bob der spielplatz"
 
                     //Index anlegen und Prefix-Suche starten
                     miniSearch.addAll(jsonData);
@@ -106,23 +130,33 @@ ws.on('open', function open() {
                             aplay ${__dirname}/tts-comp.wav &&
                             rm ${__dirname}/tts.wav &&
                             rm ${__dirname}/tts-comp.wav`;
-                            //console.log(ttsCommand);
                             exec(ttsCommand, (err, data, stderr) => {
                                 http.get("http://localhost/php/activateAudioApp.php?mode=audio");
                             });
                         });
                     }
-                    else {
-                        console.log("no results for stt -> unpause player");
 
-                        //Nachricht an WSS schicken: Pause falls Playlist gerade laeuft, damit man Mikro besser hoert
-                        ws.send(JSON.stringify({
-                            type: "toggle-paused",
-                            value: false
-                        }));
+                    //Wenn keine Treffer gefunden wurden, Player wieder starten und Lock zuruecksetzen
+                    else {
+                        console.log("no results for stt");
+                        resumePlaying();
                     }
                 });
             });
         }
     });
 });
+
+//Kein Playliststart durch STT moeglich -> bisherige Playlist fortfuehren
+function resumePlaying() {
+    console.log("resume playing");
+
+    //Lock zuruecksetzen, damit Button wieder gedrueckt werden kann
+    buttonLock = false;
+
+    //Nachricht an WSS schicken: Playlist wieder fortfuehren
+    ws.send(JSON.stringify({
+        type: "toggle-paused",
+        value: false
+    }));
+}
