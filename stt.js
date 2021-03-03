@@ -11,6 +11,7 @@ const mic = require('mic');
 const MiniSearch = require('minisearch');
 const http = require('http');
 const Gpio = require('onoff').Gpio;
+const player = require('node-wav-player');
 
 //Mikroaufnahme (channel 1 = mono)
 const micInstance = mic({
@@ -55,18 +56,24 @@ ws.on('open', function open() {
                 return;
             }
 
-            console.log("button pressed -> Set lock and start timer");
+            //Lock setzen
+            console.log("button pressed -> set lock, start timer, play beep, pause player, led on, mic on");
             buttonLock = true;
+
+            //Startzeit der Aufnahme
             startTime = new Date().getTime();
 
-            console.log("LED on");
-            led.write(1);
+            //Start Beep
+            player.play({ path: __dirname + '/beep-start.wav' });
 
-            //Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
+            //Audio Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
             ws.send(JSON.stringify({
                 type: "pause-if-playing",
                 value: false
             }));
+
+            //LED an
+            led.write(1);
 
             //Aufnahme starten
             micInstance.start();
@@ -74,9 +81,16 @@ ws.on('open', function open() {
 
         //Button released
         else {
-            console.log("button released -> LED off & stop timer");
-            led.write(0);
+            console.log("button released -> stop timer, play beep, led off, mic off");
+
+            //Aufnahmedauer berechnen
             const recordingTime = new Date().getTime() - startTime;
+
+            //Stop Beep
+            player.play({ path: __dirname + '/beep-stop.wav' });
+
+            //LED aus
+            led.write(0);
 
             //Aufnahme stoppen
             micInstance.stop();
@@ -88,16 +102,22 @@ ws.on('open', function open() {
                 return;
             }
 
+            //Calculating Sound waehrend STT-Berechnung  
+            console.log("play calculating sound, calculate stt");
+            player.play({ path: __dirname + '/kalimba.wav' });
+
             //STT-Analyse der aufgenommenen wav-Datei
             const command = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
             exec(command, (err, searchTerm, stderr) => {
-                console.log("Speech To Text: " + searchTerm);
+                console.log("stt result: " + searchTerm);
 
                 //Suchindex aus vorher erstellter JSON-Datei anlegen fuer Suche nach Playlist
                 fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
                     const miniSearch = new MiniSearch({
+                        //fileds to index
                         fields: ['name', 'tracks'],
-                        storeFields: ['name', 'topMode', 'mode', 'allowRandom'] // fields to return with search results
+                        //fields to return with search results
+                        storeFields: ['name', 'topMode', 'mode', 'allowRandom']
                     });
 
                     //TODO: remove
@@ -122,6 +142,10 @@ ws.on('open', function open() {
                             allowRandom: item.allowRandom,
                             position: 0
                         }).then(() => {
+
+                            //Calculating Sound stoppen
+                            console.log("stop calculating sound, play tts file")
+                            player.stop();
 
                             //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
                             const ttsCommand = `
@@ -149,10 +173,13 @@ ws.on('open', function open() {
 
 //Kein Playliststart durch STT moeglich -> bisherige Playlist fortfuehren
 function resumePlaying() {
-    console.log("resume playing");
+    console.log("release lock, play error beep, resume playing");
 
     //Lock zuruecksetzen, damit Button wieder gedrueckt werden kann
     buttonLock = false;
+
+    //Error Beep 
+    player.play({ path: __dirname + '/beep-error.wav' });
 
     //Nachricht an WSS schicken: Playlist wieder fortfuehren
     ws.send(JSON.stringify({
