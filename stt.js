@@ -52,15 +52,12 @@ ws.on('open', function open() {
 
             //Wenn gerade schon eine STT Berechnung laueft -> abbrechen
             if (buttonLock) {
-                console.log("lock active. please wait");
+                console.log("button pressed -> lock active. please wait");
                 return;
             }
 
-            //Lock setzen
-            console.log("button pressed -> set lock, start timer, play beep, pause player, led on, mic on");
-            buttonLock = true;
-
             //Startzeit der Aufnahme
+            console.log("button pressed -> start timer, play beep, pause player, led on, mic on");
             startTime = new Date().getTime();
 
             //Start Beep
@@ -81,7 +78,21 @@ ws.on('open', function open() {
 
         //Button released
         else {
-            console.log("button released -> stop timer, play beep, led off, mic off");
+
+            //Bei aktivem Lock nichts tun
+            if (buttonLock) {
+                console.log("button released -> lock active. please wait");
+                return;
+            }
+
+            //Wenn keine Startzeit gesetzt ist nicht tun (das ist der Fall, wenn der Knopf waehrend Berechnung gedrueckt wurde und nach Abschluss losgelassen wird)
+            if (!startTime) {
+                console.log("button released -> no start time")
+                return;
+            }
+
+            console.log("button released -> set lock, stop timer, play beep, led off, mic off");
+            buttonLock = true;
 
             //Aufnahmedauer berechnen
             const recordingTime = new Date().getTime() - startTime;
@@ -176,8 +187,9 @@ ws.on('open', function open() {
 function resumePlaying() {
     console.log("release lock, play error beep, resume playing");
 
-    //Lock zuruecksetzen, damit Button wieder gedrueckt werden kann
+    //Lock und Startzeit zuruecksetzen, damit Button wieder gedrueckt werden kann
     buttonLock = false;
+    startTime = null;
 
     //Error Beep 
     player.play({ path: __dirname + '/beep-error.wav' });
