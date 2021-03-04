@@ -13,19 +13,10 @@ const http = require('http');
 const Gpio = require('onoff').Gpio;
 const player = require('node-wav-player');
 
-//Mikroaufnahme (channel 1 = mono)
-const micInstance = mic({
-    rate: '48000',
-    channels: '1',
-    device: "hw:2,0",
-    debug: false
-});
-const micInputStream = micInstance.getAudioStream();
-const outputFileStream = new FileWriter(__dirname + '/stt.wav', {
-    sampleRate: 48000,
-    channels: 1
-});
-micInputStream.pipe(outputFileStream);
+//Mikroaufnahme
+var micInstance;
+var micInputStream;
+var outputFileStream;
 
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
 const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audioDir + "/wap/mp3";
@@ -72,7 +63,19 @@ ws.on('open', function open() {
             //LED an
             led.write(1);
 
-            //Aufnahme starten
+            //Mikroaufnahme: channel 1 = mono
+            micInstance = mic({
+                rate: '48000',
+                channels: '1',
+                device: "hw:2,0",
+                debug: true
+            });
+            micInputStream = micInstance.getAudioStream();
+            outputFileStream = new FileWriter(__dirname + '/stt.wav', {
+                sampleRate: 48000,
+                channels: 1
+            });
+            micInputStream.pipe(outputFileStream);
             micInstance.start();
         }
 
