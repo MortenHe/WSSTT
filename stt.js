@@ -96,7 +96,7 @@ ws.on('open', function open() {
             micInstance.stop();
 
             //Wenn die Aufnahme zu kurz war, Player wieder starten und Lock zuruecksetzen
-            if (recordingTime < 2000) {
+            if (recordingTime < 1000) {
                 console.log("recording was too short");
                 resumePlaying();
                 return;
@@ -162,7 +162,8 @@ ws.on('open', function open() {
 
                     //Wenn keine Treffer gefunden wurden, Player wieder starten und Lock zuruecksetzen
                     else {
-                        console.log("no results for stt");
+                        console.log("no results for stt, stop playing calculating sound, resume playing");
+                        player.stop();
                         resumePlaying();
                     }
                 });
