@@ -64,6 +64,7 @@ ws.on('open', function open() {
             led.write(1);
 
             //Mikroaufnahme: channel 1 = mono
+            //TODO: debug weg, check int vs. string
             micInstance = mic({
                 rate: '48000',
                 channels: '1',
