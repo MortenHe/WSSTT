@@ -66,8 +66,8 @@ ws.on('open', function open() {
             //Mikroaufnahme: channel 1 = mono
             //TODO: debug weg, check int vs. string
             micInstance = mic({
-                rate: '48000',
-                channels: '1',
+                rate: 48000,
+                channels: 1,
                 device: "hw:2,0",
                 debug: true
             });
