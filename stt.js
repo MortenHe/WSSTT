@@ -58,13 +58,12 @@ ws.on('open', function open() {
         led.write(1);
 
         //Mikroaufnahme: channel 1 = mono
-        //TODO: debug weg
         micInstance = mic({
             rate: 48000,
             channels: 1,
             device: "hw:2,0",
-            debug: true,
-            exitOnSilence: 10
+            debug: false,
+            exitOnSilence: 6
         });
         micInputStream = micInstance.getAudioStream();
         outputFileStream = new FileWriter(__dirname + '/stt.wav', {
@@ -130,9 +129,12 @@ ws.on('open', function open() {
                             console.log("stop calculating sound, play tts file")
                             player.stop();
 
+                            //"Max - 11 - Lernt Rad fahren" -> "Max Lernt Rad fahren" 
+                            const titleToRead = item.name.replace(/ \- \d+ \-/, "");
+
                             //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
                             const ttsCommand = `
-                                    pico2wave -l de-DE -w ${__dirname}/tts.wav '${item.name}' &&
+                                    pico2wave -l de-DE -w ${__dirname}/tts.wav '${titleToRead}' &&
                                     ffmpeg -i ${__dirname}/tts.wav -af acompressor=threshold=-11dB:ratio=9:attack=200:release=1000:makeup=2 ${__dirname}/tts-comp.wav &&
                                     aplay ${__dirname}/tts-comp.wav &&
                                     rm ${__dirname}/tts.wav &&
