@@ -134,7 +134,7 @@ ws.on('open', function open() {
 
                             //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
                             const ttsCommand = `
-                                    pico2wave -l de-DE -w ${__dirname}/tts.wav '${titleToRead}' &&
+                                    pico2wave -l de-DE -w ${__dirname}/tts.wav "${titleToRead}" &&
                                     ffmpeg -i ${__dirname}/tts.wav -af acompressor=threshold=-11dB:ratio=9:attack=200:release=1000:makeup=2 ${__dirname}/tts-comp.wav &&
                                     aplay ${__dirname}/tts-comp.wav &&
                                     rm ${__dirname}/tts.wav &&
