@@ -24,9 +24,13 @@ const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audi
 //Button und LED
 const button = new Gpio(6, 'in', 'falling', { debounceTimeout: 100 });
 const led = new Gpio(21, 'out');
+var ledHeartbeatInterval;
 
 //Lock-Flag, damit Button nicht mehrfach gleichzeitig gedrueckt werden kann
 var buttonLock = false;
+
+//vosk-api sst command
+const voskSTTcommand = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
 
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
@@ -74,24 +78,18 @@ ws.on('open', function open() {
 
         //Bei Stille Aufnahme stoppen
         micInputStream.on('silence', function () {
-            console.log("Got SIGNAL silence -> stop mic, play beep, led off");
+            console.log("Got SIGNAL silence -> stop mic, play calculating, led heartbeat, stt calculating");
             micInstance.stop();
 
-            //Stop Beep
-            player.play({ path: __dirname + '/beep-stop.wav' });
-
-            //LED aus
-            //TODO: Heartbeat
-            led.write(0);
-
-            //Calculating Sound waehrend STT-Berechnung  
-            console.log("play calculating sound, calculate stt");
+            //Beep + Calculating Sound
             player.play({ path: __dirname + '/kalimba.wav' });
 
-            //STT-Analyse der aufgenommenen wav-Datei
-            const command = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
-            exec(command, (err, searchTerm, stderr) => {
-                console.log("stt result: " + searchTerm);
+            //LED Heartbeat
+            ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 200);
+
+            //vosk STT-Analyse der aufgenommenen wav-Datei
+            exec(voskSTTcommand, (err, searchTerm, stderr) => {
+                console.log("vosk-api stt: " + searchTerm);
 
                 //Suchindex aus vorher erstellter JSON-Datei anlegen fuer Suche nach Playlist
                 fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
@@ -109,7 +107,14 @@ ws.on('open', function open() {
                     miniSearch.addAll(jsonData);
                     const results = miniSearch.search(searchTerm, {
                         prefix: true
-                    })
+                    });
+
+                    //Calculation Sound stoppen
+                    player.stop();
+
+                    //stop heartbeat led und led off
+                    clearInterval(ledHeartbeatInterval);
+                    led.writeSync(0);
 
                     //Wenn es Treffer gibt
                     if (results.length) {
@@ -124,22 +129,19 @@ ws.on('open', function open() {
                             allowRandom: item.allowRandom,
                             position: 0
                         }).then(() => {
-
-                            //Calculating Sound stoppen
-                            console.log("stop calculating sound, play tts file")
-                            player.stop();
+                            console.log("play pico2wave tts file")
 
                             //"Max - 11 - Lernt Rad fahren" -> "Max Lernt Rad fahren" 
                             const titleToRead = item.name.replace(/ \- \d+ \-/, "");
 
                             //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
-                            const ttsCommand = `
-                                    pico2wave -l de-DE -w ${__dirname}/tts.wav "${titleToRead}" &&
-                                    ffmpeg -i ${__dirname}/tts.wav -af acompressor=threshold=-11dB:ratio=9:attack=200:release=1000:makeup=2 ${__dirname}/tts-comp.wav &&
-                                    aplay ${__dirname}/tts-comp.wav &&
-                                    rm ${__dirname}/tts.wav &&
-                                    rm ${__dirname}/tts-comp.wav`;
-                            exec(ttsCommand, (err, data, stderr) => {
+                            const pico2waveTTScommand = `
+                                pico2wave -l de-DE -w ${__dirname}/tts.wav "${titleToRead}" &&
+                                ffmpeg -i ${__dirname}/tts.wav -af acompressor=threshold=-11dB:ratio=9:attack=200:release=1000:makeup=2 ${__dirname}/tts-comp.wav &&
+                                aplay ${__dirname}/tts-comp.wav &&
+                                rm ${__dirname}/tts.wav &&
+                                rm ${__dirname}/tts-comp.wav`;
+                            exec(pico2waveTTScommand, (err, data, stderr) => {
                                 http.get("http://localhost/php/activateAudioApp.php?mode=audio");
                             });
                         });
@@ -147,8 +149,7 @@ ws.on('open', function open() {
 
                     //Wenn keine Treffer gefunden wurden, Player wieder starten und Lock zuruecksetzen
                     else {
-                        console.log("no results for stt, stop playing calculating sound, resume playing");
-                        player.stop();
+                        console.log("no results for stt");
                         resumePlaying();
                     }
                 });
