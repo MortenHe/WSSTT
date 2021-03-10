@@ -32,6 +32,10 @@ var buttonLock = false;
 //vosk-api sst command
 const voskSTTcommand = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
 
+//ggf. Stopwoerter bei Indexsuche ingorieren
+//let stopWords = new Set(['und', 'der', 'die', 'das']);
+const stopWords = new Set([]);
+
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
     console.log("connected to wss from stt search");
@@ -97,7 +101,13 @@ ws.on('open', function open() {
                         //fileds to index
                         fields: ['name', 'tracks'],
                         //fields to return with search results
-                        storeFields: ['name', 'topMode', 'mode', 'allowRandom']
+                        storeFields: ['name', 'topMode', 'mode', 'allowRandom'],
+                        //Stopwords fuer Indexierung und Suche entfernen
+                        processTerm: (term, _fieldName) => stopWords.has(term) ? null : term.toLowerCase(),
+                        //Name der Playlist staerker gewichten
+                        searchOptions: {
+                            boost: { name: 5 }
+                        }
                     });
 
                     //TODO: remove
