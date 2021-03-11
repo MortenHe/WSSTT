@@ -71,7 +71,7 @@ ws.on('open', function open() {
             channels: 1,
             device: "hw:2,0",
             debug: false,
-            exitOnSilence: 6
+            exitOnSilence: 10
         });
         micInputStream = micInstance.getAudioStream();
         outputFileStream = new FileWriter(__dirname + '/stt.wav', {
