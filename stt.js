@@ -23,7 +23,7 @@ const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audi
 
 //Button und LED
 const button = new Gpio(6, 'in', 'falling', { debounceTimeout: 100 });
-const led = new Gpio(21, 'out');
+const led = new Gpio(26, 'out');
 var ledHeartbeatInterval;
 
 //Lock-Flag, damit Button nicht mehrfach gleichzeitig gedrueckt werden kann
