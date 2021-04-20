@@ -69,7 +69,7 @@ ws.on('open', function open() {
         micInstance = mic({
             rate: 48000,
             channels: 1,
-            device: "hw:2,0",
+            device: "hw:1,0",
             debug: false,
             exitOnSilence: 10
         });
