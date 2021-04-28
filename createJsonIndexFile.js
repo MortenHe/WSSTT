@@ -26,10 +26,18 @@ ws.on('open', function open() {
             for (const topMode of Object.keys(mainJSON)) {
                 for (const item of mainJSON[topMode]["items"]) {
 
+                    //Zahlensuche ermoeglichen
+                    let name = item.name;
+                    name = name.replace('Teil 1', 'Teil eins');
+                    name = name.replace('Teil 2', 'Teil zwei');
+                    name = name.replace('Teil 3', 'Teil drei');
+                    name = name.replace('Teil 4', 'Teil vier');
+                    name = name.replace('Teil 5', 'Teil fünf');
+
                     //Flaches Array erstellen fuer Suchindex mit allen Infos zu Mode, topMode, etc.
                     const indexObj = {
                         "id": item.file,
-                        "name": item.name,
+                        "name": name,
                         "tracks": item.tracks,
                         "mode": item.mode,
                         "topMode": topMode,
