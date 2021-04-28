@@ -19,7 +19,8 @@ var micInputStream;
 var outputFileStream;
 
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
-const audioDir = fs.readJSONSync(__dirname + "/../AudioServer/config.json").audioDir + "/wap/mp3";
+const configFile = fs.readJSONSync(__dirname + "/../AudioServer/config.json");
+const audioDir = configFile.audioDir + "/wap/mp3";
 
 //Button und LED
 const button = new Gpio(6, 'in', 'falling', { debounceTimeout: 100 });
@@ -69,7 +70,7 @@ ws.on('open', function open() {
         micInstance = mic({
             rate: 48000,
             channels: 1,
-            device: "hw:1,0",
+            device: configFile.STTDevice,
             debug: false,
             exitOnSilence: 10
         });
