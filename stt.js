@@ -111,9 +111,6 @@ ws.on('open', function open() {
                         }
                     });
 
-                    //TODO: remove
-                    //searchTerm = "benjamin verliebt"
-
                     //Index anlegen und Prefix-Suche starten
                     miniSearch.addAll(jsonData);
                     const results = miniSearch.search(searchTerm, {
