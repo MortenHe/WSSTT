@@ -90,7 +90,7 @@ ws.on('open', function open() {
             player.play({ path: __dirname + '/kalimba.wav' });
 
             //LED Heartbeat
-            ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 200);
+            ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 625);
 
             //vosk STT-Analyse der aufgenommenen wav-Datei
             exec(voskSTTcommand, (err, searchTerm, stderr) => {
