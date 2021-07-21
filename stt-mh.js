@@ -64,7 +64,6 @@ ws.on('open', function open() {
             led.write(1);
 
             //Mikroaufnahme: channel 1 = mono
-            //TODO: debug weg
             micInstance = mic({
                 rate: 48000,
                 channels: 1,
@@ -134,9 +133,6 @@ ws.on('open', function open() {
                         //fields to return with search results
                         storeFields: ['name', 'topMode', 'mode', 'allowRandom']
                     });
-
-                    //TODO: remove
-                    //searchTerm = "benjamin verliebt"
 
                     //Index anlegen und Prefix-Suche starten
                     miniSearch.addAll(jsonData);
