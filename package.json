@@ -1,4 +1,21 @@
 {
+  "name": "wsstt",
+  "version": "1.0.0",
+  "description": "wsstt for player",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MortenHe/WSSTT.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MortenHe/WSSTT/issues"
+  },
+  "homepage": "https://github.com/MortenHe/WSSTT#readme",
   "dependencies": {
     "fs-extra": "^9.1.0",
     "mic": "^2.1.2",

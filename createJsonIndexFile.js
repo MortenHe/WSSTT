@@ -38,10 +38,12 @@ ws.on('open', function open() {
                     const indexObj = {
                         "id": item.file,
                         "name": name,
-                        "tracks": item.tracks,
                         "mode": item.mode,
                         "topMode": topMode,
                         "allowRandom": mainJSON[topMode].allowRandom
+                    }
+                    if (item.tracks) {
+                        indexObj["tracks"] = item.tracks;
                     }
                     indexJSON.push(indexObj);
                 }
