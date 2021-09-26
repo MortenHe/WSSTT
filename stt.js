@@ -129,30 +129,31 @@ ws.on('open', function open() {
                         item = results[0];
                         console.log(item);
 
-                        //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird
-                        fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
-                            path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
-                            activeItem: item.mode + "/" + item.id,
-                            activeItemName: item.name,
-                            allowRandom: item.allowRandom,
-                            position: 0
-                        }).then(() => {
-                            console.log("play pico2wave tts file")
+                        //Wenn der Audio Player bereits laeuft, Nachricht an WSS schicken mit neuer Playlist -> dort wird Name der Playlist vorgelesen
+                        if (port === 8080) {
+                            console.log("Audio Player läuft bereits -> neue Setlist setzen");
+                            ws.send(JSON.stringify({
+                                type: "set-stt-playlist",
+                                value: cardData
+                            }));
+                        }
 
-                            //"Max - 11 - Lernt Rad fahren" -> "Max Lernt Rad fahren" 
-                            const titleToRead = item.name.replace(/ \- \d+ \-/, "");
+                        //der Audio Player laeuft gerade nicht, daher muss dieser per http-Aufruf gestartet werden
+                        else {
+                            console.log("Audio Player muss per http gestartet werden");
 
-                            //Sprachausgabe fuer ausgewaehlte Playlist und dann Playlist starten
-                            const pico2waveTTScommand = `
-                                pico2wave -l de-DE -w ${__dirname}/tts.wav "${titleToRead}" &&
-                                ffmpeg -i ${__dirname}/tts.wav -af acompressor=threshold=-11dB:ratio=9:attack=200:release=1000:makeup=2 ${__dirname}/tts-comp.wav &&
-                                aplay ${__dirname}/tts-comp.wav &&
-                                rm ${__dirname}/tts.wav &&
-                                rm ${__dirname}/tts-comp.wav`;
-                            exec(pico2waveTTScommand, (err, data, stderr) => {
+                            //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird, Flag readPlaylist damit Name der Playlist vorgelesen wird
+                            fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
+                                path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
+                                activeItem: item.mode + "/" + item.id,
+                                activeItemName: item.name,
+                                allowRandom: item.allowRandom,
+                                position: 0,
+                                readPlaylist: true
+                            }).then(() => {
                                 http.get("http://localhost/php/activateAudioApp.php?mode=audio");
                             });
-                        });
+                        }
                     }
 
                     //Wenn keine Treffer gefunden wurden, Player wieder starten und Lock zuruecksetzen
