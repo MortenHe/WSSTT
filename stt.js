@@ -133,7 +133,7 @@ ws.on('open', function open() {
                         if (port === 8080) {
                             console.log("Audio Player läuft bereits -> neue Setlist setzen");
                             ws.send(JSON.stringify({
-                                type: "set-stt-playlist",
+                                type: "set-playlist-read",
                                 value: cardData
                             }));
                         }
