@@ -127,15 +127,22 @@ ws.on('open', function open() {
                     //Wenn es Treffer gibt
                     if (results.length) {
                         item = results[0];
-                        console.log(item);
 
                         //Wenn der Audio Player bereits laeuft, Nachricht an WSS schicken mit neuer Playlist -> dort wird Name der Playlist vorgelesen
                         if (port === 8080) {
                             console.log("Audio Player läuft bereits -> neue Setlist setzen");
                             ws.send(JSON.stringify({
                                 type: "set-playlist-read",
-                                value: cardData
+                                value: {
+                                    name: item.name,
+                                    mode: item.topMode,
+                                    path: item.mode + "/" + item.id,
+                                    allowRandom: item.allowRandom
+                                }
                             }));
+
+                            //Lock zuruecksetzen, damit Button wieder gedrueckt werden kann
+                            buttonLock = false;
                         }
 
                         //der Audio Player laeuft gerade nicht, daher muss dieser per http-Aufruf gestartet werden
