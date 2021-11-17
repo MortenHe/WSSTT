@@ -38,6 +38,7 @@ ws.on('open', function open() {
                     const indexObj = {
                         "id": item.file,
                         "name": name,
+                        "name": item.lang,
                         "mode": item.mode,
                         "topMode": topMode,
                         "allowRandom": mainJSON[topMode].allowRandom

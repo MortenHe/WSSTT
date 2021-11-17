@@ -102,7 +102,7 @@ ws.on('open', function open() {
                         //fileds to index
                         fields: ['name', 'tracks'],
                         //fields to return with search results
-                        storeFields: ['name', 'topMode', 'mode', 'allowRandom'],
+                        storeFields: ['name', 'lang', 'topMode', 'mode', 'allowRandom'],
                         //Stopwords fuer Indexierung und Suche entfernen
                         processTerm: (term, _fieldName) => stopWords.has(term) ? null : term.toLowerCase(),
                         //Name der Playlist staerker gewichten
@@ -135,7 +135,7 @@ ws.on('open', function open() {
                                 type: "set-playlist-read",
                                 value: {
                                     name: item.name,
-                                    name: item.lang ?? "de-DE",
+                                    lang: item.lang ?? "de-DE",
                                     mode: item.topMode,
                                     path: item.mode + "/" + item.id,
                                     allowRandom: item.allowRandom
