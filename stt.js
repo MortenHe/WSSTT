@@ -135,7 +135,7 @@ ws.on('open', function open() {
                                 type: "set-playlist-read",
                                 value: {
                                     name: item.name,
-                                    lang: item.lang ?? "de-DE",
+                                    lang: item.lang || "de-DE",
                                     mode: item.topMode,
                                     path: item.mode + "/" + item.id,
                                     allowRandom: item.allowRandom
