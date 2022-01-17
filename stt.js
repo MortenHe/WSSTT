@@ -156,6 +156,7 @@ ws.on('open', function open() {
                                 activeItem: item.mode + "/" + item.id,
                                 activeItemName: item.name,
                                 allowRandom: item.allowRandom,
+                                lang: item.lang || "de-DE",
                                 position: 0,
                                 readPlaylist: true
                             }).then(() => {
