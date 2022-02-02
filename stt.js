@@ -33,10 +33,6 @@ var buttonLock = false;
 //vosk-api sst command
 const voskSTTcommand = "cd " + __dirname + "/../vosk-api/python/example && python3 stt-mh.py " + __dirname + "/stt.wav";
 
-//ggf. Stopwoerter bei Indexsuche ingorieren
-//let stopWords = new Set(['und', 'der', 'die', 'das']);
-const stopWords = new Set([]);
-
 //Wenn Verbindung mit WSS hergestellt wird
 ws.on('open', function open() {
     console.log("connected to wss from stt search");
@@ -50,21 +46,17 @@ ws.on('open', function open() {
             return;
         }
 
-        //Lock setzen
+        //Lock setzen, Start Beep und LED an
         console.log("button pressed -> set lock, play beep, pause player, led on, mic on");
         buttonLock = true;
-
-        //Start Beep
         player.play({ path: __dirname + '/beep-start.wav' });
+        led.write(1);
 
         //Audio Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
         ws.send(JSON.stringify({
             type: "pause-if-playing",
             value: false
         }));
-
-        //LED an
-        led.write(1);
 
         //Mikroaufnahme: channel 1 = mono
         micInstance = mic({
@@ -85,11 +77,7 @@ ws.on('open', function open() {
         micInputStream.on('silence', function () {
             console.log("Got SIGNAL silence -> stop mic, play calculating, led heartbeat, stt calculating");
             micInstance.stop();
-
-            //Beep + Calculating Sound
             player.play({ path: __dirname + '/kalimba.wav' });
-
-            //LED Heartbeat
             ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 625);
 
             //vosk STT-Analyse der aufgenommenen wav-Datei
@@ -98,6 +86,8 @@ ws.on('open', function open() {
 
                 //Suchindex aus vorher erstellter JSON-Datei anlegen fuer Suche nach Playlist
                 fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
+
+                    //TODO: Index nur einmal schreiben
                     const miniSearch = new MiniSearch({
                         //fileds to index
                         fields: ['name'],
@@ -111,14 +101,13 @@ ws.on('open', function open() {
                         prefix: true
                     });
 
-                    //Calculation Sound stoppen
+                    //Calculation Sound stoppen, Stop heartbeat led und led off
                     player.stop();
-
-                    //stop heartbeat led und led off
                     clearInterval(ledHeartbeatInterval);
                     led.writeSync(0);
 
                     //Wenn es Treffer gibt
+                    //TODO: Bing Sound spielen zur Ueberbrueckung
                     if (results.length) {
                         item = results[0];
 
