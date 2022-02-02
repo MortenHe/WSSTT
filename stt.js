@@ -100,15 +100,9 @@ ws.on('open', function open() {
                 fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
                     const miniSearch = new MiniSearch({
                         //fileds to index
-                        fields: ['name', 'tracks'],
+                        fields: ['name'],
                         //fields to return with search results
-                        storeFields: ['name', 'lang', 'topMode', 'mode', 'allowRandom'],
-                        //Stopwords fuer Indexierung und Suche entfernen
-                        processTerm: (term, _fieldName) => stopWords.has(term) ? null : term.toLowerCase(),
-                        //Name der Playlist staerker gewichten
-                        searchOptions: {
-                            boost: { name: 5 }
-                        }
+                        storeFields: ['name', 'lang', 'topMode', 'mode'],
                     });
 
                     //Index anlegen und Prefix-Suche starten
@@ -137,8 +131,7 @@ ws.on('open', function open() {
                                     name: item.name,
                                     lang: item.lang || "de-DE",
                                     mode: item.topMode,
-                                    path: item.mode + "/" + item.id,
-                                    allowRandom: item.allowRandom
+                                    path: item.mode + "/" + item.id
                                 }
                             }));
 
@@ -155,7 +148,6 @@ ws.on('open', function open() {
                                 path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
                                 activeItem: item.mode + "/" + item.id,
                                 activeItemName: item.name,
-                                allowRandom: item.allowRandom,
                                 activeItemLang: item.lang || "de-DE",
                                 position: 0,
                                 readPlaylist: true

@@ -40,11 +40,7 @@ ws.on('open', function open() {
                         "name": name,
                         "lang": item.lang,
                         "mode": item.mode,
-                        "topMode": topMode,
-                        "allowRandom": mainJSON[topMode].allowRandom
-                    }
-                    if (item.tracks) {
-                        indexObj["tracks"] = item.tracks;
+                        "topMode": topMode
                     }
                     indexJSON.push(indexObj);
                 }

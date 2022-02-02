@@ -129,9 +129,9 @@ ws.on('open', function open() {
                 fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
                     const miniSearch = new MiniSearch({
                         //fileds to index
-                        fields: ['name', 'tracks'],
+                        fields: ['name'],
                         //fields to return with search results
-                        storeFields: ['name', 'topMode', 'mode', 'allowRandom']
+                        storeFields: ['name', 'topMode', 'mode']
                     });
 
                     //Index anlegen und Prefix-Suche starten
@@ -150,7 +150,6 @@ ws.on('open', function open() {
                             path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
                             activeItem: item.mode + "/" + item.id,
                             activeItemName: item.name,
-                            allowRandom: item.allowRandom,
                             position: 0
                         }).then(() => {
 
