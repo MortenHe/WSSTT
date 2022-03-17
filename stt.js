@@ -1,9 +1,6 @@
-//Mit WebsocketServer verbinden
 const port = parseInt(process.argv[2]);
 const WebSocket = require('ws');
 const ws = new WebSocket('ws://localhost:' + port);
-
-//Libs
 const { exec } = require('child_process');
 const fs = require('fs-extra');
 const FileWriter = require('wav').FileWriter;
@@ -11,7 +8,7 @@ const mic = require('mic');
 const MiniSearch = require('minisearch');
 const http = require('http');
 const Gpio = require('onoff').Gpio;
-const player = require('node-wav-player');
+const singleSoundPlayer = require('node-wav-player');
 
 //Mikroaufnahme
 var micInstance;
@@ -20,7 +17,8 @@ var outputFileStream;
 
 //AudioDir holen fuer Erstellung des Playlist-Aufrufs ueber lastSession.json
 const configFile = fs.readJSONSync(__dirname + "/../AudioServer/config.json");
-const audioDir = configFile.audioDir + "/wap/mp3";
+const audioDir = configFile.audioDir;
+const audioFilesDir = audioDir + "/wap/mp3";
 
 //Button und LED
 const button = new Gpio(6, 'in', 'falling', { debounceTimeout: 100 });
@@ -46,10 +44,9 @@ ws.on('open', function open() {
             return;
         }
 
-        //Lock setzen, Start Beep und LED an
         console.log("button pressed -> set lock, play beep, pause player, led on, mic on");
         buttonLock = true;
-        player.play({ path: __dirname + '/beep-start.wav' });
+        playSound("stt-start");
         led.write(1);
 
         //Audio Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
@@ -64,6 +61,7 @@ ws.on('open', function open() {
             channels: 1,
             device: configFile.STTDevice,
             debug: false,
+            //TODO: groesserer Wert?
             exitOnSilence: 10
         });
         micInputStream = micInstance.getAudioStream();
@@ -77,7 +75,7 @@ ws.on('open', function open() {
         micInputStream.on('silence', function () {
             console.log("Got SIGNAL silence -> stop mic, play calculating, led heartbeat, stt calculating");
             micInstance.stop();
-            player.play({ path: __dirname + '/kalimba.wav' });
+            playSound("kalimba");
             ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 625);
 
             //vosk STT-Analyse der aufgenommenen wav-Datei
@@ -88,6 +86,7 @@ ws.on('open', function open() {
                 fs.readJSON(__dirname + '/sttIndex.json').then(jsonData => {
 
                     //TODO: Index nur einmal schreiben
+                    console.log("before minisearch index")
                     const miniSearch = new MiniSearch({
                         //fileds to index
                         fields: ['name'],
@@ -102,14 +101,13 @@ ws.on('open', function open() {
                     });
 
                     //Calculation Sound stoppen, Stop heartbeat led und led off
-                    player.stop();
+                    singleSoundPlayer.stop();
                     clearInterval(ledHeartbeatInterval);
                     led.writeSync(0);
 
                     //Wenn es Treffer gibt
-                    //TODO: Bing Sound spielen zur Ueberbrueckung
                     if (results.length) {
-                        item = results[0];
+                        const item = results[0];
 
                         //Wenn der Audio Player bereits laeuft, Nachricht an WSS schicken mit neuer Playlist -> dort wird Name der Playlist vorgelesen
                         if (port === 8080) {
@@ -123,8 +121,6 @@ ws.on('open', function open() {
                                     path: item.mode + "/" + item.id
                                 }
                             }));
-
-                            //Lock zuruecksetzen, damit Button wieder gedrueckt werden kann
                             buttonLock = false;
                         }
 
@@ -134,7 +130,7 @@ ws.on('open', function open() {
 
                             //Clever: lastSession-Datei anlegen, die beim Start des AudioServers geladen wird, Flag readPlaylist damit Name der Playlist vorgelesen wird
                             fs.writeJson(__dirname + "/../AudioServer/lastSession.json", {
-                                path: audioDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
+                                path: audioFilesDir + "/" + item.topMode + "/" + item.mode + "/" + item.id,
                                 activeItem: item.mode + "/" + item.id,
                                 activeItemName: item.name,
                                 activeItemLang: item.lang || "de-DE",
@@ -163,16 +159,15 @@ ws.on('open', function open() {
 //Kein Playliststart durch STT moeglich -> bisherige Playlist fortfuehren
 function resumePlaying() {
     console.log("release lock, play error beep, resume playing");
-
-    //Lock zuruecksetzen, damit Button wieder gedrueckt werden kann
     buttonLock = false;
-
-    //Error Beep 
-    player.play({ path: __dirname + '/beep-error.wav' });
-
-    //Nachricht an WSS schicken: Playlist wieder fortfuehren
+    playSound("stt-error");
     ws.send(JSON.stringify({
         type: "toggle-paused",
         value: false
     }));
+}
+
+//Einzelsound abspielen
+function playSound(sound) {
+    singleSoundPlayer.play({ path: audioDir + "/sounds/" + sound + ".wav" });
 }
