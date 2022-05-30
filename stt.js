@@ -160,6 +160,7 @@ ws.on('open', function open() {
 function resumePlaying() {
     console.log("release lock, play error beep, resume playing");
     buttonLock = false;
+    //TODO: kein unpause beep in server.js
     playSound("stt-error");
     ws.send(JSON.stringify({
         type: "toggle-paused",
