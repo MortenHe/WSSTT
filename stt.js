@@ -75,7 +75,13 @@ ws.on('open', function open() {
         micInputStream.on('silence', function () {
             console.log("Got SIGNAL silence -> stop mic, play calculating, led heartbeat, stt calculating");
             micInstance.stop();
-            playSound("kalimba");
+
+            // Pick random kalimba file to be played during STT
+            const files = fs.readdirSync(audioDir);
+            const kalimbaFiles = files.filter(file => file.startsWith("kalimba-") && file.endsWith('.wav'));
+            const randomKalimbaFile = kalimbaFiles[Math.floor(Math.random() * kalimbaFiles.length)];
+            const randomKalimbaFileNameWithoutExtension = path.basename(randomKalimbaFile, '.wav');
+            playSound(randomKalimbaFileNameWithoutExtension);
             ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 625);
 
             //vosk STT-Analyse der aufgenommenen wav-Datei
