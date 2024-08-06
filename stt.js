@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const ws = new WebSocket('ws://localhost:' + port);
 const { exec } = require('child_process');
 const fs = require('fs-extra');
+const path = require('path');
 const FileWriter = require('wav').FileWriter;
 const mic = require('mic');
 const MiniSearch = require('minisearch');
@@ -77,7 +78,7 @@ ws.on('open', function open() {
             micInstance.stop();
 
             // Pick random kalimba file to be played during STT
-            const files = fs.readdirSync(audioDir);
+            const files = fs.readdirSync(audioDir + "/sounds");
             const kalimbaFiles = files.filter(file => file.startsWith("kalimba-") && file.endsWith('.wav'));
             const randomKalimbaFile = kalimbaFiles[Math.floor(Math.random() * kalimbaFiles.length)];
             const randomKalimbaFileNameWithoutExtension = path.basename(randomKalimbaFile, '.wav');
