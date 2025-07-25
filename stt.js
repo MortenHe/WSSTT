@@ -50,7 +50,7 @@ ws.on('open', function open() {
         playSound("stt-start");
         led.write(1);
 
-        //Audio Player pausieren (falls er gerade laueft), damit man Mikro besser hoert
+        //Audio Player pausieren (falls er gerade laeuft), damit man Mikro besser hoert
         ws.send(JSON.stringify({
             type: "pause-if-playing",
             value: false
@@ -80,7 +80,8 @@ ws.on('open', function open() {
             // Pick random kalimba file to be played during STT
             const files = fs.readdirSync(audioDir + "/sounds");
             const kalimbaFiles = files.filter(file => file.startsWith("kalimba-") && file.endsWith('.wav'));
-            const randomKalimbaFile = kalimbaFiles[Math.floor(Math.random() * kalimbaFiles.length)];
+            const idx = Date.now() % kalimbaFiles.length;
+            const randomKalimbaFile = kalimbaFiles[idx];
             const randomKalimbaFileNameWithoutExtension = path.basename(randomKalimbaFile, '.wav');
             playSound(randomKalimbaFileNameWithoutExtension);
             ledHeartbeatInterval = setInterval(_ => led.writeSync(led.readSync() ^ 1), 625);
