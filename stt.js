@@ -97,7 +97,7 @@ ws.on('open', function open() {
                     console.log("before minisearch index")
                     const miniSearch = new MiniSearch({
                         //fileds to index
-                        fields: ['name'],
+                        fields: ['search'],
                         //fields to return with search results
                         storeFields: ['name', 'lang', 'topMode', 'mode'],
                     });
